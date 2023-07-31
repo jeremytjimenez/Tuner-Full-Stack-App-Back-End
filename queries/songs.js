@@ -1,76 +1,110 @@
 const db = require("../db/dbConfig");
 
 const getAllSongs = async () => {
-    try {
-        const allSongs = await db.any("SELECT * FROM songs");
+  try {
+    const allSongs = await db.any(`SELECT * FROM songs`);
 
-        return allSongs;
-    } catch (error) {
-        return error;
-    }
+    return allSongs;
+  } catch (error) {
+    return error;
+  }
 };
 
+const getSongById = async (id) => {
+  try {
+    const oneSong = await db.any(`SELECT * FROM songs WHERE id = $1`, id);
+    // const oneReview = await db.any(
+    //   `
+    //     SELECT ALBUM_ID,
+    //         REVIEWER,
+    //         TITLE,
+    //         CONTENT,
+    //         RATING
+    //     FROM ALBUMS
+    //     JOIN SONGS ON ALBUMS.ID = SONGS.ALBUM_ID
+    //     WHERE ALBUMS.ID = $1
+    //         AND SONGS.ID = $2;
+    // `,
+    //   [albumId, songId]
+    // );
 
-async function getSongById(id) {
-    try {
-        const foundSong = await db.any(`SELECT * FROM songs WHERE id = $1`, id);
-
-        return foundSong;
-    } catch (error) {
-        return error;
-    }
-}
-
-const createSong = async (data) => {
-    try {
-        const newSong = await db.one(
-            "INSERT INTO songs (name, artist, album, time, is_favorite) VALUES ($1, $2, $3, $4, $5) RETURNING *", 
-            [data.name, data.artist, data.album, data.time, data.is_favorite]
-        );
-
-        return newSong;
-    } catch (error) {
-      return error;
-    }
-}
-
-const deleteSong = async (id) => {
-    try {
-        const deletedSong = await db.any(
-            "DELETE FROM songs WHERE id = $1 RETURNING *",
-            [id]
-        );
-
-        return { status: "successful", data: deletedSong };
-    } catch (error) {
-        return { status: "failed", err: error};
-    }
+    return oneSong;
+  } catch (error) {
+    return error;
+  }
 };
 
-const updateSongById = async (id, data) => {
-    try {
-        const originalSong = await db.any("SELECT * FROM songs WHERE id = $1", [id])
+const deleteSongById = async (id) => {
+  try {
+    const deleteSong = await db.any(
+      `DELETE FROM songs WHERE id = $1 RETURNING *`,
+      id
+    );
 
-        let combinedSong = {
-            ...originalSong[0],
-            ...data
-        }
+    return deleteSong;
+  } catch (error) {
+    return error;
+  }
+};
 
-        const updatedSong = await db.one(
-            "UPDATE songs SET name = $1, artist = $2, album = $3, time = $4, is_favorite = $5 WHERE id = $6 RETURNING *",
-            [combinedSong.name, combinedSong.artist, combinedSong.album, combinedSong.time,combinedSong.is_favorite, id]
-        );
+const createSong = async (song) => {
+  try {
+    const newSong = await db.any(
+      `INSERT INTO songs (name, artist, album, time, is_favorite, album_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        song.name,
+        song.artist,
+        song.album,
+        song.time,
+        song.is_favorite
+      ]
+    );
 
-        return { status: "success!", data: updatedSong };
-    } catch (error) {
-        return { status: "failed", err: error};
-    }
-}
+    return newSong;
+  } catch (error) {
+    return error;
+  }
+};
+
+const updateSongById = async (id, song) => {
+  let { name, artist, is_favorite } = song;
+  try {
+    const updatedSong = await db.any(
+      `UPDATE songs SET name = $1, artist = $2, is_favorite = $3 WHERE id = $4 RETURNING *`,
+      [name, artist, is_favorite, id]
+    );
+
+    return updatedSong;
+  } catch (error) {
+    return error;
+  }
+};
+
+const getAllSongsOnAlbumId = async (album_id) => {
+  try {
+    // const allReviews = await db.any(
+    //   `SELECT * FROM reviews WHERE bookmark_id = $1 RETURNING *`,
+    //   bookmark_id
+    // );
+
+    const allSongs = await db.any(
+      `SELECT * FROM albums INNER JOIN songs ON songs.album_id = albums.id WHERE songs.album_id = $1 `,
+      album_id
+    );
+
+    // `SELECT * FROM reviews WHERE exists (select * from bookmarks WHERE $1 = reviews.bookmark_id)`
+
+    return allSongs;
+  } catch (error) {
+    return error;
+  }
+};
 
 module.exports = {
-    getAllSongs,
-    getSongById,
-    createSong,
-    deleteSong,
-    updateSongById
+  getAllSongs,
+  getSongById,
+  deleteSongById,
+  createSong,
+  updateSongById,
+  getAllSongsOnAlbumId,
 };

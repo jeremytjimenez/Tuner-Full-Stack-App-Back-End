@@ -5,8 +5,9 @@ const {
   getAllSongs,
   getSongById,
   createSong,
-  deleteSong,
+  deleteSongById,
   updateSongById,
+  getAllSongsOnAlbumId
 } = require("../queries/songs");
 
 const {
@@ -25,17 +26,29 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id/songs", async (req, res) => {
   const { id } = req.params;
 
-  const foundSong = await getSongById(id);
+  const allSongsByAlbumId = await getAllSongsOnAlbumId(id);
 
-  if (foundSong[0]) {
-    res.json(foundSong[0]);
+  if (allSongsByAlbumId[0]) {
+    res.json(allSongsByAlbumId[0]);
   } else {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+router.get("/:id", async (req, res) => {
+    const { id } = req.params;
+  
+    const foundSong = await getSongById(id);
+  
+    if (foundSong[0]) {
+      res.json(foundSong[0]);
+    } else {
+      res.status(500).json({ error: "Server error" });
+    }
+  });
 
 router.post("/", checkName, checkArtist, checkIsFavorite, async (req, res) => {
   const createdSong = await createSong(req.body);
@@ -44,7 +57,7 @@ router.post("/", checkName, checkArtist, checkIsFavorite, async (req, res) => {
 });
 
 router.delete("/:id", async (req, res) => {
-  const deletedSong = await deleteSong(req.params.id);
+  const deletedSong = await deleteSongById(req.params.id);
 
   if (deletedSong.data.length === 0) {
     return res.status(404).json({ message: "no data found!", error: true });
